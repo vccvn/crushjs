@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <a href="#" id="btn-test">Doãn Rất đẹp trai</a>
+    <script>
+        var originn = "Doãn";
+        var btn = document.getElementById('btn-test');
+        btn.addEventListener('click', function(){
+            if(originn == "Doãn"){
+                originn = "Quân";
+            }
+            else{
+                originn = "Doãn";
+            } 
+            btn.innerText = `${originn} Rất đẹp trai`
+
+        })
+
+
+        var luotClick = 0;
+        var names  = ["Quân", "Doãn", "Liên"];
+
+        var btn = document.getElementById('btn-test');
+        btn.innerText = `${names[0]} Rất đẹp trai`
+
+        btn.addEventListener('click', function(){
+            luotClick++;
+            var thutu = luotClick % names.length;
+            // var name = btn.getAttribute('name'+thutu);
+            btn.innerText = `${names[thutu]} Rất đẹp trai`
+            
+        })
+        
+    </script>
+</body>
+</html>
