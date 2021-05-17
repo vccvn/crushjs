@@ -6,46 +6,36 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Data</title>
+  <style>
+    p, div, article, aside, ul{
+      padding-left: 30px;
+    }
+  </style>
 </head>
 
 <body>
 
   <script type="module">
-    import DataObject from './core/DataObject.js';
+    // import DataObject from './core/DataObject.js';
     import ObjectData, { ArrayData } from './core/DataType.js';
-    import Dom, { $ } from './core/dom.js';
+    import Dom from './core/Dom.js';
+    import TestCompontent from './examples/TestComponent.js';
     window.Dom = Dom;
-    window.$ = $;
+
+    // window.$ = $;
     
+
     // window.DataObject = DataObject;
     window.ObjectData = ObjectData;
     window.ArrayData = ArrayData;
-    var test = new DataObject({ Doan: "Dep Trai" });
-    console.log(test);
+    // var test = new DataObject();
+
+    var testComp = TestCompontent({ keywords: "Dep Trai" });
+    testComp.appendTo(document.body);
+
   </script>
 
-  <script src="./vue.js"></script>
-
-  <div id="app-4">
-    <ol>
-      <li v-for="todo in todos">
-        {{ todo.text }}
-      </li>
-    </ol>
-  </div>
-
-  <script>
-    var app4 = new Vue({
-      el: '#app-4',
-      data: {
-        todos: [
-          { text: 'Learn JavaScript' },
-          { text: 'Learn Vue' },
-          { text: 'Build something awesome' }
-        ]
-      }
-    })
-  </script>
+  
 </body>
 
 </html>

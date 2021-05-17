@@ -127,7 +127,17 @@ function getPrimitiveValue(value) {
     defConst(Primitive, 'isPrimitiveValue', true);
     defConst(Primitive, 'isPrimitiveData', true);
     defConst(Primitive, 'isPrimitive', true);
-
+    var t = getType(value);
+    defConst(Primitive, 'type', Str.ucfirst(t));
+    defConst(Primitive, 'is'+Str.ucfirst(t), true);
+    
+    defConst(this, '__PARENTS__', parents, {
+        get: function () { return parents; }
+    });
+    defConst(this, '__PARENT__', undefined, {
+        get: function () { return parents[0]; }
+    });
+    
     defConst(Primitive, '__onChange__', function (fn) {
         if (typeof fn == "function") events.value.push(fn);
     });
@@ -217,7 +227,15 @@ function getPrimitive(value) {
     defConst(primitive, 'isPrimitiveValue', true);
     defConst(primitive, 'isPrimitiveData', true);
     defConst(primitive, 'isPrimitive', true);
-
+    defConst(primitive, 'is'+Str.ucfirst(getType(value)), true);
+    
+    defConst(this, '__PARENTS__', parents, {
+        get: function () { return parents; }
+    });
+    defConst(this, '__PARENT__', undefined, {
+        get: function () { return parents[0]; }
+    });
+    
     defConst(primitive, '__onChange__', function (fn) {
         if (typeof fn == "function") events.value.push(fn);
     });
@@ -293,6 +311,12 @@ var ArrayData = function ArrayData(inputData) {
     var _data = [];
     var parents = [];
     var id = ++_uid;
+    defConst(this, '__PARENTS__', parents, {
+        get: function () { return parents; }
+    });
+    defConst(this, '__PARENT__', undefined, {
+        get: function () { return parents[0]; }
+    });
     defConst(this, 'length', arrayLength, {
         get: function () { return arrayLength; }
     });
@@ -373,7 +397,7 @@ var ArrayData = function ArrayData(inputData) {
                 const vl = _data[index];
                 const type = getType(vl);
                 if (inArray(['array', 'function', 'object'], type) && typeof vl.__toData__ == "function") ret.push(vl.__toData__());
-                else vl.push(vl);
+                else ret.push(vl);
             }
             return ret;
         },
@@ -608,15 +632,10 @@ var ArrayData = function ArrayData(inputData) {
             addElement(index, value);
         }
     }
-
-
-
-
-
-
 }
 ArrayData.prototype = {
     isArrayData: true,
+    isDataType: true,
     constructor: ArrayData,
     toArray: function () {
         return this.__call__('toData', []);
@@ -634,7 +653,7 @@ ArrayData.prototype = {
         return this.indexOf(value);
     },
     __onChange__: function (fn) {
-
+        return this.__call__('addChangeEvent', fn);
     },
     __dispatchChangeFromChildren__: function () {
         var params = ["dispatchChangeFromChildren", getArguments(arguments)];
@@ -674,23 +693,336 @@ indexingMethods.map(function (m) {
     }
 })
 
-var ObjectData = function ObjectData(dataValue) {
-    if (!_instanceof(this, ObjectData)) return new ObjectData(dataValue);
+var ObjectData = function ObjectData(inputData) {
+    if (!_instanceof(this, ObjectData)) {
+        if (isArray(inputData)) {
+            return new ArrayData(inputData);
+        }
+        return new ObjectData(dataValue);
+    }
+    if (isArray(inputData)) {
+        return new ArrayData(inputData);
+    }
     var self = this;
-    if (isArray(dataValue)) {
-        var arrayLength = dataValue.length;
-        defConst(this, '__type__', 'array');
-        defConst(this, 'length', arrayLength, {
-            get: function () { return arrayLength; }
-        });
-        defConst(this, 'slice', arr.slice);
-        defConst(this, 'toArray', function () {
-            return slice.call(this);
-        });
 
+    var _data = {};
+    var parents = [];
+    var id = ++_uid;
+    defConst(this, '__PARENTS__', parents, {
+        get: function () { return parents; }
+    });
+    defConst(this, '__PARENT__', undefined, {
+        get: function () { return parents[0]; }
+    });
+    defConst(this, 'id', id, {
+        get: function () { return id; }
+    });
+    defConst(this, '__ID__', id, {
+        get: function () { return id; }
+    });
+
+    var $methods = {
+        keyOf: function (value) {
+            for (let i in _data) {
+                const vl = _data[i];
+                if (value == vl || (isObject(vl) && ((vl.isArrayData || vl.isObjectData) && vl.__toData__() == value))) return i;
+            }
+            return NO_VALUE;
+        }, 
+
+        indexOf: function(value){
+            var key = this.keyOf(value);
+            return key != NO_VALUE ? key: -1
+        },
+        forEach: function (callback) {
+            var ret = [];
+            if (isFunction(callback)) {
+                for (let i in _data) {
+                    const vl = _data[i];
+                    if (callback(vl, i) === false)
+                        break;
+                    else
+                        ret.push(vl);
+                }
+
+            }
+            return ret;
+        },
+        findIndex: function (callback) {
+            if (isFunction(callback)) {
+                for (let i in _data.length) {
+                    const vl = _data[i];
+                    if (callback(vl, i))
+                        return i;
+                }
+
+            }
+            return -1;
+        },
+        toData: function toData() {
+            var ret = {};
+            for (let index in _data.length) {
+                const vl = _data[index];
+                const type = getType(vl);
+                if (inArray(['array', 'function', 'object'], type) && typeof vl.__toData__ == "function") ret[index] = vl.__toData__();
+                else ret[index] = vl
+            }
+            return ret;
+        },
+        setParent: function (parent) {
+            if (isObject(parent) || isArray(parent)) {
+                index = parents.indexOf(parent);
+                if (index == -1) {
+                    parents.push(parents);
+                }
+
+            }
+        },
+        removeParent: function (parent) {
+            var index = parents.indexOf(parent);
+            if (index != -1) {
+                parents.push(parents);
+            }
+        },
+        dispatchEventFromChildren: function (eventElements) {
+            var value = eventElements[eventElements.length - 1].target;
+            var ownerKey = self.__keyOf__(value);
+            if (ownerKey !== false && ownerKey != -1) {
+                for (let i = 0; i < eventElements.length; i++) {
+                    const ev = eventElements[i];
+                    ev.keys.unshift(ownerKey);
+                }
+            }
+            eventElements.push({
+                id: self.id,
+                keys: [ownerKey],
+                value: value,
+                target: self
+            })
+            if (!parents.length) {
+                dispatchByList(eventElements);
+            } else {
+                var s = 0;
+                for (let i = 0; i < parents.length; i++) {
+                    const parent = parents[i];
+                    if (typeof parent.__dispatchChangeFromChildren__ == "function") {
+                        parent.__dispatchChangeFromChildren__(eventElements);
+                        s++;
+                    }
+                }
+                if (!s) dispatchByList(eventElements);
+            }
+        },
+        addChangeEventFromChildren: function (listenner) {
+            if (!(isObject(listenner) && typeof listenner.callback == "function" && listenner.target)) return false;
+            var index = self.__keyOf__(listenner.target);
+            if (index == -1) return false;
+            var a = {
+                keys: listenner.keys.slice(0),
+                target: self,
+                callback: listenner.callback
+            }
+            a.keys.unshift(index);
+            if (!parents.length) {
+                addEventListener(id, a.keys.join('.'), a.callback);
+            } else {
+                var s = 0;
+                for (let i = 0; i < parents.length; i++) {
+                    const parent = parents[i];
+                    if (typeof parent.__addChangeEventFromChildren__ == "function") {
+                        parent.__addChangeEventFromChildren__(a);
+                        s++;
+                    }
+                }
+                if (!s) addEventListener(id, a.keys.join('.'), a.callback);
+            }
+        },
+        addChangeEvent: function (fn) {
+            if (typeof fn == "function") {
+                var s = 0;
+                if (parents.length) {
+                    for (let index = 0; index < parents.length; index++) {
+                        const parent = parents[index];
+                        if (typeof parent.__addChangeEventFromChildren__ == "function") {
+                            parent.__addChangeEventFromChildren__({
+                                keys: [],
+                                callback: fn,
+                                target: self
+                            });
+                            s++;
+                        }
+                    }
+                }
+                if (!s) {
+                    for (let i = 0; i < _data.length; i++) {
+                        const vl = _data[i];
+                        if ((isObject(vl) || isFunction(vl)) && typeof vl.__addChangeEvent__ == "function") {
+                            vl.__addChangeEvent__(fn);
+                        }
+                    }
+                }
+            }
+        },
+        assignProp: function(key, value){
+            if(isObject(key)){
+                for (const k in key) {
+                    if (Object.hasOwnProperty.call(key, k)) {
+                        const vl = key[k];
+                        addElement(k, vl);
+                    }
+                }
+            }else if(isString(key)){
+                addElement(key, value);
+            }
+        }
+    };
+
+    function changeValue(index, value) {
+        var s = 0;
+        if (parents.length) {
+            for (let i = 0; i < parents.length; i++) {
+                const parent = parents[i];
+                if (isCallable(parent.__dispatchChangeFromChildren__)) {
+                    parent.__dispatchChangeFromChildren__([
+                        {
+                            id: id,
+                            value: value,
+                            keys: [index],
+                            target: self
+                        }
+                    ]);
+                    s++;
+                }
+            }
+        }
+        if (!s) {
+            dispatchEvent(id, {
+                type: "prop.changed",
+                value: value,
+                accessKey: index,
+                target: self
+            })
+        }
 
     }
+    function dispatchByList(eventList) {
+        if (!isArray(eventList) || !eventList.length) return;
+        for (let index = 0; index < eventList.length; index++) {
+            const event = eventList[index];
+            event.accessKey = event.key ? event.key : (event.keys ? event.keys.join('.') : (event.indexes ? event.indexes.join('.') : index));
+            dispatchEvent(id, event);
+        }
+    }
+    function addElement(key, value) {
+        // this.__$taget$__[key] = value;
+        var vl = parseValue(value);
+        changeValue(key, vl);
+        
+        if (!(key in self)) {
+            self[key] = vl;
+        }
+        _data[key] = vl;
+        if (_data[key].isPrimitiveData) {
+            _data[key].__onChange__(function (v) {
+                changeValue(key, v);
+            });
+            _data[key].__onChangeType__(function (t, v) {
+                addElement(key, v);
+            });
+            vl.__setParent__(self);
+        }
+        defProp(self, key, vl, {
+            get: function getter() {
+                return _data[key];
+            },
+            set: function setter(value) {
+                _data[key] = parseValue(value);
+                changeValue(key, _data[key]);
+                if (_data[key].isPrimitiveData) {
+                    _data[key].__setParent__(self);
+                    _data[key].__onChange__(function (v) {
+                        changeValue(key, v);
+                    });
+                    _data[key].__onChangeType__(function (t, v) {
+                        addElement(key, v);
+                    });
+                }
+
+                target[key] = value;
+            },
+            configurable: true,
+            enumerable: true
+        });
+        
+    }
+
+
+
+
+    function callMethod(method, args) {
+
+        if (typeof $methods[method] == "function") {
+            return $methods[method].apply(self, isArray(args) ? args : []);
+        }
+        return undefined;
+    }
+    defConst(self, '__call__', callMethod, {
+        get: function () {
+            return callMethod;
+        }
+    });
+
+
+
+    if (isArray(inputData)) {
+        for (let key in inputData) {
+            const value = inputData[key];
+            addElement(key, value);
+        }
+    }
+
+
+
+
 }
+
+ObjectData.prototype = {
+    isObjectData: true,
+    isDataType: true,
+    constructor: ObjectData,
+    toArray: function () {
+        return this.__call__('toData', []);
+    },
+    __toData__: function () {
+        return this.__call__('toData', []);
+    },
+    toString: function () {
+        return JSON.stringify(this.__toData__());
+    },
+    __keyOf__: function (value) {
+        return this.__call__('keyOf', [value]);
+    },
+    __onChange__: function (fn) {
+        return this.__call__('addChangeEvent', fn);
+    },
+    __dispatchChangeFromChildren__: function () {
+        var params = ["dispatchChangeFromChildren", getArguments(arguments)];
+        return this.__call__.apply(this, params);
+    },
+    __addChangeEventFromChildren__: function () {
+        var args = getArguments(arguments);
+        return this.__call__('addChangeEventFromChildren', args);
+    },
+    __addChangeEvent__: function (fn) {
+        return this.__call__('addChangeEvent', fn);
+    },
+    __assign__: function (key, value) {
+        return this.__call__('assignProp', [key, value]);
+    }
+
+
+
+};
 
 export default ObjectData;
 export { ArrayData, ObjectData }

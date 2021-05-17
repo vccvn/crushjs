@@ -91,10 +91,23 @@ var getType = function (obj) {
             t = 'object';
         } else if (obj.constructor == Number) {
             t = 'number';
-        } else {
+        } 
+        else if(obj.isPrimitive){
+            t = "primitive";
+        }
+        else {
+
             t = 'object';
         }
-    } else {
+    } else if(type == "function"){
+        if(obj.isPrimitive){
+            t = "primitive";
+        }
+        else {
+            t = type;
+        }
+    }
+    else {
         t = type;
     }
     return t;
@@ -112,7 +125,8 @@ var isString = function isString(variable) {
  * @param {*} variable biến bất kỳ
  */
 var isNull = function isNull(variable) {
-    return getType(variable) == "null";
+    var t = getType(variable);
+    return t == "null" || (t == "primitive" && variable.isNull);
 }
 /**
  * kiềm tra có phải array
@@ -134,7 +148,7 @@ var isObject = function isObject(variable) {
  */
  var isNumber = function isNumber(variable) {
     var type = getType(variable);
-    return (type === "number" || type === "string") && !isNaN(variable - parseFloat(variable));
+    return ((type === "number" || type === "string") && !isNaN(variable - parseFloat(variable))) || (type === "primitive" && variable.isNumber);
 }
 /**
  * kiềm tra có phải loat
@@ -142,7 +156,7 @@ var isObject = function isObject(variable) {
  */
  var isFloat = function isFloat(variable) {
     var type = getType(variable);
-    return (type === "number" || type === "string") && !isNaN(variable - parseFloat(variable));
+    return ((type === "number" || type === "string") && !isNaN(variable - parseFloat(variable))) || (type === "primitive" && isNumber(variable.__toData__()));
 }
 
 /**
@@ -150,7 +164,7 @@ var isObject = function isObject(variable) {
  * @param {*} variable biến bất kỳ
  */
 var isInteger = function isInteger(variable) {
-    return isNumber(variable) && String(parseInt(variable)) == String(variable);
+    return isNumber(variable) && String(parseInt(variable.toString())) == String(variable);
 }
 
 
@@ -158,8 +172,9 @@ var isInteger = function isInteger(variable) {
  * kiềm tra có phải boolean
  * @param {*} variable biến bất kỳ
  */
-var isBoolean = function isBoolean(variable) {
-    return getType(variable) == "boolean";
+ var isBoolean = function isBoolean(variable) {
+    var type = getType(variable)
+    return (type  == "boolean") || (type == "primitive" && variable.isBoolean);
 }
 
 /**
@@ -168,6 +183,22 @@ var isBoolean = function isBoolean(variable) {
  */
 var isFormData = function isFormData(variable) {
     return getType(variable) == "formdata";
+}
+
+/**
+ * kiềm tra có phải boolean
+ * @param {*} variable biến bất kỳ
+ */
+ var isUndefined = function isUndefined(variable) {
+    var type = getType(variable);
+    return (type == "undefined") || (type == "primitive" && variable.isUndefined);
+}
+
+var isTrue = function isTrue(variable){
+    return isBoolean(variable) && variable == true;
+}
+var isFalse = function isFalse(variable){
+    return isBoolean(variable) && variable == false;
 }
 
 /**
@@ -1894,10 +1925,15 @@ Helper.getArguments = getArguments;
 Helper.JsonToBase64 = JsonToBase64;
 Helper.b64toBlob = b64toBlob;
 Helper.resizeImage = resizeImage;
+Helper.isUndefined = isUndefined;
+Helper.isNull = isNull;
+Helper.isTrue = isTrue;
+Helper.isFalse = isFalse;
 export default Helper;
 export {
     _instanceof, _defineProperties, _createClass, _defineProperty, addToGlobal,
-    getType, checkType, isArray, isBoolean, isObject, isString, isNumber, isInteger, isEmail, isNull, isFormData, isEmpty, isCallable, isFunction, isProperty, isMethod, hasValue, inArray,
+    getType, checkType, isArray, isBoolean, isObject, isString, isNumber, isInteger, isEmail, isNull, isFormData, isEmpty, 
+    isCallable, isFunction, isProperty, isMethod, hasValue, inArray, isTrue, isFalse, isUndefined, 
     cutWithout, copyWithout, compareObject, cl, deepCopy, copyArray, objectKeys, objectValues, merge, combine, arrayJoin, objectHasKey, objectHasProperty,
     Num, Str, date, getEl, assignValue, assignWithout, colorToHex, invertHexColor, minOf, maxOf, copyByList, isFloat,
     Queue, queueTask, combineElenentsToArrList, combineElenentsJoinStringList, getArguments, JsonToBase64, b64toBlob, resizeImage
